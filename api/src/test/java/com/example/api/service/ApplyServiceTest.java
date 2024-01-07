@@ -26,4 +26,17 @@ class ApplyServiceTest {
 		assertThat(count).isEqualTo(1);
 	}
 
+	@Test
+	public void 여러명응모() {
+		int threadCount = 1000;
+		ExecutorService executorService = Executors.newFixedThreadPool(32);
+		CountDownLatch latch = new CountDownLatch(threadCount);
+
+		for (int i = 0; i < threadCount; i++) {
+			long userId = i;
+			executorService.submit(() -> {
+				applyService.apply(userId);
+			});
+		}
+	}
 }
