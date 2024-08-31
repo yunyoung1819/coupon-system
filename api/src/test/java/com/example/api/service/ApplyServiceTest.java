@@ -55,6 +55,8 @@ class ApplyServiceTest {
 
 		latch.await();
 
+		Thread.sleep(10000);
+
 		// 5. 모든 요청이 완료되면 생성된 쿠폰의 개수를 확인한다.
 		long count = couponRepository.count();
 
