@@ -11,10 +11,51 @@
 - 순간적으로 몰리는 트래픽을 버틸 수 있어야 합니다.
 
 
-## 2. 문제점
+### 환경세팅
+- docker 설치
+```angular2html
+brew install docker
+brew link docker
+
+docker version
+```
+
+- docker mysql 실행 명령어
+
+```
+docker pull mysql
+docker run -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=1234 --name mysql mysql
+docker ps
+docker exec -it mysql bash
+```
+
+- mysql 명령어
+
+```
+mysql -u root -p
+create dabase coupon_example;
+use coupon_example;
+```
+
+- 쿠폰 발급 로직을 작성
+
+```java
+	public void apply(Long userId) {
+		Long count = couponCountRepository.increment();
+
+		if (count > 100) {
+			return;
+		}
+		couponCreateProducer.create(userId);
+	}
+```
+
+
+## 2. 쿠폰 발급의 문제점
+- 쿠폰이 100개 생성될 것을 기대했지만 실제로는 100개 이상이 생성됨
 
 ### race condition 
-- 두 개 이상의 쓰레드가 공유 데이터에 엑세스하고 작업하려고 할 때 발생하는 문제
+- 2 개 이상의 쓰레드가 공유 데이터에 엑세스하고 작업하려고 할 때 발생하는 문제
 
 ### 예상 동작
 
@@ -36,6 +77,32 @@
 
 
 ## 3. Redis를 활용하여 문제 해결하기
+
+
+```text
+docker pull redis
+docker run --name myredis -d -p 6379:6379 redis
+```
+
+|시간| Thread-1     | Redis-count count  | Thread-2                                                |
+|--|--------------|--------------------|---------------------------------------------------------|
+|10:00| start- 10:00 | 99 |                                                         |
+|10:01| incr coupon_count | 99 | wait...                                                 |
+|10:02| end - 10:02 | 100 | wait...                                                 |
+|10:03| create coupon| 101 | start - 10:02 <br/> incr coupon_count <br/> end - 10:03 |
+| | | 101 | failed create counpon |
+
+
+
+### 문제점
+- mysql: 1분에 100개의 insert가 가능하다고 가정
+
+|Time|Request|
+|--|--|
+|10:00|쿠폰 생성 10000개 요청|
+|10:01|주문 생성 요청|
+|10:02|회원 가입 요청|
+
 
 ## 4. Kafka를 활용하여 문제 해결하기 
 ### 카프카란?
